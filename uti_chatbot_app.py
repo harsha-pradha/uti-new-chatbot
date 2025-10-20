@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -94,12 +93,15 @@ def load_model_artifacts():
         st.error(f"Error loading model artifacts: {e}")
         return None, None, None, None
 
-# Prediction function
+# ========== REPLACE THIS FUNCTION ==========
 def predict_uti_risk(user_inputs, model, scaler, feature_names):
-    """Make UTI risk prediction"""
+    """Make UTI risk prediction with enhanced debugging"""
     try:
         # Prepare input features
         input_features = prepare_user_inputs(user_inputs, feature_names)
+        
+        # Debug: Show what features are being sent to the model
+        st.sidebar.info(f"Features sent to model: {len(input_features)}")
         
         # Scale features
         input_scaled = scaler.transform([input_features])
@@ -108,10 +110,14 @@ def predict_uti_risk(user_inputs, model, scaler, feature_names):
         prediction = model.predict(input_scaled)[0]
         probability = model.predict_proba(input_scaled)[0][1]
         
-        # Determine risk level
-        if probability >= 0.7:
+        # Debug information
+        st.sidebar.write(f"Raw prediction: {prediction}")
+        st.sidebar.write(f"Probability: {probability:.3f}")
+        
+        # Determine risk level (adjusted thresholds for better sensitivity)
+        if probability >= 0.6:  # Lowered from 0.7
             risk_level = "HIGH"
-        elif probability >= 0.4:
+        elif probability >= 0.3:  # Lowered from 0.4
             risk_level = "MEDIUM"
         else:
             risk_level = "LOW"
@@ -124,13 +130,62 @@ def predict_uti_risk(user_inputs, model, scaler, feature_names):
         }
     except Exception as e:
         st.error(f"Prediction error: {e}")
+        # Add more detailed error information
+        st.error(f"Input features length: {len(input_features) if 'input_features' in locals() else 'N/A'}")
+        st.error(f"Expected features: {len(feature_names) if feature_names else 'N/A'}")
         return None
 
+# ========== REPLACE THIS FUNCTION ==========
 def prepare_user_inputs(user_inputs, expected_features):
-    """Prepare user inputs for model prediction"""
-    feature_dict = {feature: 0 for feature in expected_features}
-    feature_dict.update(user_inputs)
+    """Prepare user inputs for model prediction with proper default values"""
+    # Create a complete feature dictionary with sensible defaults
+    feature_dict = {}
+    
+    # Set defaults for all expected features
+    for feature in expected_features:
+        if feature in user_inputs:
+            feature_dict[feature] = user_inputs[feature]
+        elif feature.startswith('Color_'):
+            # Default to 0 for all color features except DARK YELLOW
+            feature_dict[feature] = 1 if feature == 'Color_DARK YELLOW' else 0
+        elif feature.startswith('Gender_'):
+            # Default to 0 for gender (will be set based on user input)
+            feature_dict[feature] = 0
+        elif feature in ['Epithelial Cells', 'Mucous Threads', 'Amorphous Urates']:
+            # Set reasonable defaults for these features
+            if feature == 'Epithelial Cells':
+                feature_dict[feature] = 1  # Common finding
+            elif feature == 'Mucous Threads':
+                feature_dict[feature] = 1  # Common finding
+            elif feature == 'Amorphous Urates':
+                feature_dict[feature] = 0  # Less common
+        else:
+            feature_dict[feature] = 0
+    
     return [feature_dict[feature] for feature in expected_features]
+
+# ========== ADD THIS NEW FUNCTION ==========
+def validate_model(model, scaler, feature_names):
+    """Validate that the model is working with test data"""
+    if model and scaler and feature_names:
+        # Create a test case that should be high risk
+        test_inputs = {
+            "Age": 25,
+            "pH": 8.5,
+            "Specific Gravity": 1.030,
+            "WBC": 50,
+            "RBC": 20,
+            "Glucose": 0,  # NEGATIVE
+            "Protein": 4,  # 3+
+            "Bacteria": 4, # PLENTY
+            "Transparency": 4, # TURBID
+            "Gender_FEMALE": 1,
+            "Gender_MALE": 0,
+        }
+        
+        result = predict_uti_risk(test_inputs, model, scaler, feature_names)
+        return result
+    return None
 
 # Bilingual Explanation Engine
 class BilingualExplanationEngine:
@@ -256,6 +311,14 @@ class BilingualExplanationEngine:
 model, scaler, feature_names, model_performance = load_model_artifacts()
 explanation_engine = BilingualExplanationEngine()
 
+# ========== ADD MODEL VALIDATION ==========
+if model and feature_names:
+    st.sidebar.write(f"✅ Model loaded with {len(feature_names)} features")
+    # Test the model with high-risk values
+    test_result = validate_model(model, scaler, feature_names)
+    if test_result:
+        st.sidebar.write(f"Test prediction: {test_result['risk_level']} risk")
+
 # Initialize session state
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
@@ -288,10 +351,11 @@ protein_map = {"NEGATIVE": 0, "TRACE": 1, "1+": 2, "2+": 3, "3+": 4}
 bacteria_map = {"NONE SEEN": 0, "RARE": 1, "FEW": 2, "MODERATE": 3, "PLENTY": 4}
 transparency_map = {"CLEAR": 0, "SLIGHTLY HAZY": 1, "HAZY": 2, "CLOUDY": 3, "TURBID": 4}
 
+# ========== UPDATE USER INPUTS SECTION ==========
 # Analysis button
 if st.sidebar.button("🔍 Analyze My Report", type="primary", use_container_width=True):
     with st.spinner("🤖 AI is analyzing your urinalysis report..."):
-        # Prepare user inputs
+        # Prepare user inputs - CORRECTED VERSION
         user_inputs = {
             "Age": age,
             "pH": ph,
@@ -304,10 +368,20 @@ if st.sidebar.button("🔍 Analyze My Report", type="primary", use_container_wid
             "Transparency": transparency_map[transparency],
             "Gender_MALE": 1 if gender == "MALE" else 0,
             "Gender_FEMALE": 1 if gender == "FEMALE" else 0,
-            "Color_DARK YELLOW": 1,
-            "Epithelial Cells": 1,
-            "Mucous Threads": 1,
-            "Amorphous Urates": 0
+            # Add the missing features with reasonable values
+            "Color_DARK YELLOW": 1,  # Most common
+            "Color_AMBER": 0,
+            "Color_BROWN": 0,
+            "Color_LIGHT RED": 0,
+            "Color_LIGHT YELLOW": 0,
+            "Color_RED": 0,
+            "Color_REDDISH": 0,
+            "Color_REDDISH YELLOW": 0,
+            "Color_STRAW": 0,
+            "Color_YELLOW": 0,
+            "Epithelial Cells": 1,  # Common finding
+            "Mucous Threads": 1,   # Common finding
+            "Amorphous Urates": 0   # Less common
         }
         
         st.session_state.user_inputs = user_inputs
@@ -318,6 +392,14 @@ if st.sidebar.button("🔍 Analyze My Report", type="primary", use_container_wid
             st.session_state.prediction_result = prediction_result
         else:
             st.error("❌ Model not loaded properly. Please check the model files.")
+
+# Debug information
+if st.sidebar.checkbox("Show Debug Info"):
+    st.sidebar.write("### Debug Information")
+    if feature_names:
+        st.sidebar.write(f"Expected features: {len(feature_names)}")
+    if st.session_state.prediction_result:
+        st.sidebar.write("Last prediction:", st.session_state.prediction_result)
 
 # Main content area
 if st.session_state.prediction_result:
