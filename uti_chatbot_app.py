@@ -773,7 +773,7 @@ with tab1:
             if model_performance:
                 st.metric("Model Accuracy", f"{model_performance.get('accuracy', 0.92):.1%}")
 
-# In the UTI Risk Analysis tab, replace the summary section with this:
+# Replace the summary section with this:
 
         # Summary Section
         st.header("📋 Summary")
@@ -781,36 +781,38 @@ with tab1:
         # Generate summary based on risk level
         risk_percentage = int(result['probability'] * 100)
         
+        # Create the summary content without markdown formatting
         if result['risk_level'] == 'HIGH':
-            summary_text = """
-**High Risk of UTI Detected ({}%)**
-
-Your urinalysis results indicate a high probability of urinary tract infection. Key concerning factors include:
-- Elevated levels of infection markers
-- Abnormal urine characteristics  
-- Clinical indicators suggesting active infection
-
-**Recommendation:** Please consult with a healthcare provider promptly for proper diagnosis and guidance.
-""".format(risk_percentage)
+            summary_content = f"""
+            <div style='font-size: 16px; line-height: 1.6;'>
+            <h3 style='color: #ff4b4b; margin-bottom: 15px;'>High Risk of UTI Detected ({risk_percentage}%)</h3>
+            <p>Your urinalysis results indicate a high probability of urinary tract infection. Key concerning factors include:</p>
+            <ul>
+                <li>Elevated levels of infection markers</li>
+                <li>Abnormal urine characteristics</li>
+                <li>Clinical indicators suggesting active infection</li>
+            </ul>
+            <p style='font-weight: bold; color: #ff4b4b;'>Recommendation: Please consult with a healthcare provider promptly for proper diagnosis and guidance.</p>
+            </div>
+            """
         elif result['risk_level'] == 'MEDIUM':
-            summary_text = """
-**Medium Risk of UTI ({}%)**
-
-Your results show some indicators of possible urinary tract infection, but the evidence is not conclusive.
-
-**Recommendation:** Monitor your symptoms closely and consider consulting a healthcare provider if symptoms persist or worsen.
-""".format(risk_percentage)
+            summary_content = f"""
+            <div style='font-size: 16px; line-height: 1.6;'>
+            <h3 style='color: #ffa500; margin-bottom: 15px;'>Medium Risk of UTI ({risk_percentage}%)</h3>
+            <p>Your results show some indicators of possible urinary tract infection, but the evidence is not conclusive.</p>
+            <p style='font-weight: bold; color: #ffa500;'>Recommendation: Monitor your symptoms closely and consider consulting a healthcare provider if symptoms persist or worsen.</p>
+            </div>
+            """
         else:
-            summary_text = """
-**Low Risk of UTI ({}%)**
-
-Your urinalysis results are largely within normal ranges, indicating low probability of urinary tract infection.
-
-**Recommendation:** Continue practicing good urinary health habits and monitor for any new symptoms.
-""".format(risk_percentage)
+            summary_content = f"""
+            <div style='font-size: 16px; line-height: 1.6;'>
+            <h3 style='color: #4CAF50; margin-bottom: 15px;'>Low Risk of UTI ({risk_percentage}%)</h3>
+            <p>Your urinalysis results are largely within normal ranges, indicating low probability of urinary tract infection.</p>
+            <p style='font-weight: bold; color: #4CAF50;'>Recommendation: Continue practicing good urinary health habits and monitor for any new symptoms.</p>
+            </div>
+            """
         
-        st.markdown(f'<div class="info-box">{summary_text}</div>', unsafe_allow_html=True)
-
+        st.markdown(f'<div class="info-box">{summary_content}</div>', unsafe_allow_html=True)
         # Dynamic Diet Recommendations
         st.header("🍎 Personalized Diet & Nutrition")
         
