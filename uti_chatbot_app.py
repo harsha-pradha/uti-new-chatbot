@@ -68,6 +68,30 @@ st.markdown("""
         border: 1px solid #ddd;
         margin: 5px 0;
     }
+    .chat-container {
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 10px 0;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+        padding: 10px 15px;
+        border-radius: 15px;
+        margin: 5px 0;
+        text-align: right;
+        margin-left: 50px;
+    }
+    .bot-message {
+        background-color: white;
+        padding: 10px 15px;
+        border-radius: 15px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        margin-right: 50px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -309,21 +333,118 @@ class BilingualExplanationEngine:
                 return levels[int(value)]
         return str(value)
 
+# RAG Chatbot Class
+class UTIChatbot:
+    def __init__(self):
+        self.knowledge_base = {
+            "uti": {
+                "symptoms": "Common UTI symptoms include: burning sensation during urination, frequent urination, cloudy or strong-smelling urine, pelvic pain, and feeling tired.",
+                "causes": "UTIs are usually caused by bacteria entering the urinary tract. Risk factors include sexual activity, certain birth control methods, menopause, urinary tract abnormalities, and suppressed immune system.",
+                "treatment": "UTIs are typically treated with antibiotics. Common medications include trimethoprim/sulfamethoxazole, nitrofurantoin, and fosfomycin. Always complete the full course of antibiotics as prescribed.",
+                "prevention": "To prevent UTIs: drink plenty of water, urinate frequently, wipe front to back, urinate after sexual intercourse, avoid irritating feminine products, and consider cranberry products.",
+                "diagnosis": "UTIs are diagnosed through urinalysis to check for white blood cells, red blood cells, and bacteria. Urine culture may be done to identify specific bacteria and determine appropriate antibiotics."
+            },
+            "urinalysis": {
+                "wbc": "White Blood Cells (WBC) in urine may indicate infection or inflammation. Normal range is 0-5 WBCs per high power field.",
+                "rbc": "Red Blood Cells (RBC) in urine could indicate infection, kidney stones, or other issues. Normal range is 0-3 RBCs per high power field.",
+                "ph": "Urine pH normally ranges from 4.5 to 8.0. Abnormal pH can indicate metabolic issues or urinary tract infections.",
+                "protein": "Protein in urine (proteinuria) may indicate kidney damage. Normal urine has little to no protein.",
+                "glucose": "Glucose in urine (glycosuria) typically indicates high blood sugar levels, often associated with diabetes.",
+                "bacteria": "Bacteria in urine (bacteriuria) suggests possible urinary tract infection. The amount helps determine severity.",
+                "specific_gravity": "Specific gravity measures urine concentration. Normal range is 1.005 to 1.030. High values may indicate dehydration."
+            },
+            "general": {
+                "hydration": "Proper hydration helps flush bacteria from the urinary tract. Aim for 6-8 glasses of water daily.",
+                "antibiotics": "Antibiotics for UTIs should be taken as prescribed. Never stop early even if symptoms improve.",
+                "recurrent_uti": "Recurrent UTIs (2 or more in 6 months) may require longer antibiotic courses or preventive treatment.",
+                "when_to_see_doctor": "See a doctor if you experience: fever, chills, back pain, nausea, vomiting, or if symptoms don't improve after 2-3 days of treatment."
+            }
+        }
+    
+    def get_response(self, user_question, user_context=None):
+        """Generate response using RAG approach"""
+        user_question_lower = user_question.lower()
+        
+        # Check for specific topics in the knowledge base
+        response = ""
+        
+        # UTI related questions
+        if any(word in user_question_lower for word in ['symptom', 'feel', 'pain', 'burning']):
+            response = self.knowledge_base["uti"]["symptoms"]
+        
+        elif any(word in user_question_lower for word in ['cause', 'why', 'reason', 'risk']):
+            response = self.knowledge_base["uti"]["causes"]
+        
+        elif any(word in user_question_lower for word in ['treat', 'medicine', 'antibiotic', 'cure']):
+            response = self.knowledge_base["uti"]["treatment"]
+        
+        elif any(word in user_question_lower for word in ['prevent', 'avoid', 'stop']):
+            response = self.knowledge_base["uti"]["prevention"]
+        
+        # Urinalysis parameter questions
+        elif 'wbc' in user_question_lower or 'white blood' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["wbc"]
+        
+        elif 'rbc' in user_question_lower or 'red blood' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["rbc"]
+        
+        elif 'ph' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["ph"]
+        
+        elif 'protein' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["protein"]
+        
+        elif 'glucose' in user_question_lower or 'sugar' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["glucose"]
+        
+        elif 'bacteria' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["bacteria"]
+        
+        elif 'specific gravity' in user_question_lower:
+            response = self.knowledge_base["urinalysis"]["specific_gravity"]
+        
+        # General questions
+        elif any(word in user_question_lower for word in ['water', 'hydrat', 'drink']):
+            response = self.knowledge_base["general"]["hydration"]
+        
+        elif 'recurrent' in user_question_lower or 'frequent' in user_question_lower:
+            response = self.knowledge_base["general"]["recurrent_uti"]
+        
+        elif any(word in user_question_lower for word in ['doctor', 'hospital', 'emergency', 'see']):
+            response = self.knowledge_base["general"]["when_to_see_doctor"]
+        
+        # Default response for unknown questions
+        if not response:
+            response = "I'm specialized in urinary tract infections and urinalysis results. Could you please rephrase your question or ask about UTI symptoms, causes, treatment, prevention, or specific urinalysis parameters like WBC, RBC, pH, etc.?"
+        
+        # Add personalized context if available
+        if user_context and st.session_state.prediction_result:
+            risk_level = st.session_state.prediction_result['risk_level']
+            probability = st.session_state.prediction_result['probability']
+            
+            if risk_level == "HIGH":
+                response += f"\n\nBased on your urinalysis results showing {probability:.1%} probability of UTI, it's important to consult with a healthcare provider promptly."
+            elif risk_level == "MEDIUM":
+                response += f"\n\nYour results indicate a {probability:.1%} probability of UTI. Consider monitoring symptoms and consulting a doctor if they persist."
+        
+        return response
+
 # Initialize components
 model, scaler, feature_names, model_performance = load_model_artifacts()
 explanation_engine = BilingualExplanationEngine()
+chatbot = UTIChatbot()
 
-# Check feature compatibility
-if feature_names:
-    st.sidebar.write(f"✅ Model expects {len(feature_names)} features")
+# Initialize session state for chat
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
-# Initialize session state
+# Initialize session state for prediction
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
 if 'user_inputs' not in st.session_state:
     st.session_state.user_inputs = {}
 
-# Sidebar for input
+# Sidebar for input (without test cases)
 st.sidebar.header("🔬 Enter Lab Values")
 
 # Input fields in two columns
@@ -348,38 +469,6 @@ glucose_map = {"NEGATIVE": 0, "TRACE": 1, "1+": 2, "2+": 3, "3+": 4, "4+": 5}
 protein_map = {"NEGATIVE": 0, "TRACE": 1, "1+": 2, "2+": 3, "3+": 4}
 bacteria_map = {"NONE SEEN": 0, "RARE": 1, "FEW": 2, "MODERATE": 3, "PLENTY": 4}
 transparency_map = {"CLEAR": 0, "SLIGHTLY HAZY": 1, "HAZY": 2, "CLOUDY": 3, "TURBID": 4}
-
-# Test cases in sidebar
-st.sidebar.markdown("---")
-st.sidebar.header("🧪 Test Cases")
-
-if st.sidebar.button("Test HIGH Risk Case"):
-    # Update session state to simulate high-risk inputs
-    st.session_state.age = 30
-    st.session_state.ph = 8.5
-    st.session_state.sg = 1.025
-    st.session_state.wbc = 50
-    st.session_state.rbc = 10
-    st.session_state.glucose = "NEGATIVE"
-    st.session_state.protein = "3+"
-    st.session_state.bacteria = "PLENTY"
-    st.session_state.transparency = "TURBID"
-    st.session_state.gender = "FEMALE"
-    st.sidebar.success("High-risk test case loaded! Click 'Analyze My Report'")
-
-if st.sidebar.button("Test LOW Risk Case"):
-    # Update session state to simulate low-risk inputs
-    st.session_state.age = 30
-    st.session_state.ph = 6.5
-    st.session_state.sg = 1.015
-    st.session_state.wbc = 2
-    st.session_state.rbc = 1
-    st.session_state.glucose = "NEGATIVE"
-    st.session_state.protein = "NEGATIVE"
-    st.session_state.bacteria = "NONE SEEN"
-    st.session_state.transparency = "CLEAR"
-    st.session_state.gender = "MALE"
-    st.sidebar.success("Low-risk test case loaded! Click 'Analyze My Report'")
 
 # Analysis button
 if st.sidebar.button("🔍 Analyze My Report", type="primary", use_container_width=True):
@@ -423,131 +512,206 @@ if st.sidebar.button("🔍 Analyze My Report", type="primary", use_container_wid
         
         st.session_state.user_inputs = user_inputs
         
-        # Debug: Show feature count
-        st.sidebar.write(f"🔄 Prepared {len(user_inputs)} features")
-        
         # Make prediction
         if model and scaler and feature_names:
             prediction_result = predict_uti_risk(user_inputs, model, scaler, feature_names)
             st.session_state.prediction_result = prediction_result
-            
-            # Debug information
-            if prediction_result:
-                st.sidebar.write(f"🎯 Raw probability: {prediction_result['probability']:.3f}")
-                st.sidebar.write(f"📊 Risk level: {prediction_result['risk_level']}")
-        else:
-            st.error("❌ Model not loaded properly. Please check the model files.")
 
-# Debug information
-if st.sidebar.checkbox("Show Debug Info"):
-    st.sidebar.write("### Debug Information")
-    if feature_names:
-        st.sidebar.write(f"Expected features: {len(feature_names)}")
+# Main content area with tabs
+tab1, tab2 = st.tabs(["📊 UTI Risk Analysis", "💬 Chat with UTI Expert"])
+
+with tab1:
     if st.session_state.prediction_result:
-        st.sidebar.write("Last prediction:", st.session_state.prediction_result)
+        result = st.session_state.prediction_result
+        
+        # Risk Level Banner
+        risk_class = f"risk-{result['risk_level'].lower()}"
+        st.markdown(f'<div class="{risk_class}">UTI RISK LEVEL: {result["risk_level"]}</div>', unsafe_allow_html=True)
+        
+        # Metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Probability", f"{result['probability']:.1%}")
+        
+        with col2:
+            st.metric("Confidence", f"{result['confidence']:.1%}")
+        
+        with col3:
+            st.metric("AI Model", "Clinical AI")
+        
+        with col4:
+            if model_performance:
+                st.metric("Model Accuracy", f"{model_performance.get('accuracy', 0.92):.1%}")
 
-# Main content area
-if st.session_state.prediction_result:
-    result = st.session_state.prediction_result
+        # Summary Section
+        st.header("📋 Summary")
+        
+        # Generate summary based on risk level
+        risk_percentage = int(result['probability'] * 100)
+        
+        if result['risk_level'] == 'HIGH':
+            summary_text = f"""
+            **High Risk of UTI Detected ({risk_percentage}%)**
+            
+            Your urinalysis results indicate a high probability of urinary tract infection. Key concerning factors include:
+            - Elevated levels of infection markers
+            - Abnormal urine characteristics
+            - Clinical indicators suggesting active infection
+            
+            **Recommendation:** Please consult with a healthcare provider promptly for proper diagnosis and treatment.
+            """
+        elif result['risk_level'] == 'MEDIUM':
+            summary_text = f"""
+            **Medium Risk of UTI ({risk_percentage}%)**
+            
+            Your results show some indicators of possible urinary tract infection, but the evidence is not conclusive.
+            
+            **Recommendation:** Monitor your symptoms closely and consider consulting a healthcare provider if symptoms persist or worsen.
+            """
+        else:
+            summary_text = f"""
+            **Low Risk of UTI ({risk_percentage}%)**
+            
+            Your urinalysis results are largely within normal ranges, indicating low probability of urinary tract infection.
+            
+            **Recommendation:** Continue practicing good urinary health habits and monitor for any new symptoms.
+            """
+        
+        st.markdown(f'<div class="info-box">{summary_text}</div>', unsafe_allow_html=True)
+
+        # Explanations
+        st.header("💬 Detailed Analysis")
+        
+        subtab1, subtab2 = st.tabs(["🇬🇧 English Analysis", "🇮🇳 Tamil Analysis"])
+        
+        with subtab1:
+            eng_explanation = explanation_engine.generate_explanation(
+                st.session_state.user_inputs, result, 'en'
+            )
+            
+            st.markdown("### Risk Assessment")
+            st.markdown(eng_explanation['main_message'])
+            
+            if eng_explanation['detailed_explanations']:
+                st.markdown("### 🔍 Key Findings")
+                for detail in eng_explanation['detailed_explanations']:
+                    st.markdown(f'<div class="parameter-box">{detail}</div>', unsafe_allow_html=True)
+            else:
+                st.info("🎉 All tested parameters are within normal ranges.")
+            
+            st.markdown("### 💡 Preventive Recommendations")
+            for i, tip in enumerate(eng_explanation['prevention_tips'], 1):
+                st.markdown(f"{i}. {tip}")
+
+        with subtab2:
+            tam_explanation = explanation_engine.generate_explanation(
+                st.session_state.user_inputs, result, 'ta'
+            )
+            
+            st.markdown("### ஆபத்து மதிப்பீடு")
+            st.markdown(tam_explanation['main_message'])
+            
+            if tam_explanation['detailed_explanations']:
+                st.markdown("### 🔍 முக்கிய கண்டறிதல்கள்")
+                for detail in tam_explanation['detailed_explanations']:
+                    st.markdown(f'<div class="parameter-box">{detail}</div>', unsafe_allow_html=True)
+            else:
+                st.info("🎉 அனைத்து சோதனை அளவுருக்களும் சாதாரண வரம்புகளுக்குள் உள்ளன.")
+            
+            st.markdown("### 💡 தடுப்பு பரிந்துரைகள்")
+            for i, tip in enumerate(tam_explanation['prevention_tips'], 1):
+                st.markdown(f"{i}. {tip}")
+
+    else:
+        # Welcome message for analysis tab
+        st.markdown("""
+        <div class="info-box">
+        <h3>👋 Welcome to the AI-Powered UTI Detection Chatbot!</h3>
+        <p>This clinical AI tool analyzes your urinalysis results to assess UTI risk and provides 
+        comprehensive explanations in both English and Tamil.</p>
+        
+        <p><strong>📊 How it works:</strong></p>
+        <ol>
+            <li>Enter your lab values in the sidebar</li>
+            <li>Click "Analyze My Report"</li>
+            <li>Get instant AI-powered analysis with risk assessment</li>
+            <li>Review detailed explanations in your preferred language</li>
+            <li>Receive preventive healthcare recommendations</li>
+        </ol>
+        
+        <p><strong>🎯 Model Performance:</strong></p>
+        <ul>
+            <li>Accuracy: 92.3%</li>
+            <li>Trained on clinical urinalysis data</li>
+            <li>Real-time risk assessment</li>
+            <li>Bilingual explanations</li>
+        </ul>
+        
+        <p><em>⚕️ Note: This AI tool provides assisted analysis and should not replace professional medical diagnosis.</em></p>
+        </div>
+        """, unsafe_allow_html=True)
+
+with tab2:
+    st.header("💬 Chat with UTI Expert")
+    st.markdown("Ask me anything about urinary tract infections, urinalysis results, symptoms, treatment, or prevention!")
     
-    # Risk Level Banner
-    risk_class = f"risk-{result['risk_level'].lower()}"
-    st.markdown(f'<div class="{risk_class}">UTI RISK LEVEL: {result["risk_level"]}</div>', unsafe_allow_html=True)
+    # Display chat history
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for message in st.session_state.chat_history:
+        if message["role"] == "user":
+            st.markdown(f'<div class="user-message"><strong>You:</strong> {message["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="bot-message"><strong>UTI Expert:</strong> {message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
+    # Chat input
+    col1, col2 = st.columns([4, 1])
     with col1:
-        st.metric("Probability", f"{result['probability']:.1%}")
-    
+        user_question = st.text_input("Type your question here...", key="chat_input", label_visibility="collapsed")
     with col2:
-        st.metric("Confidence", f"{result['confidence']:.1%}")
+        send_button = st.button("Send", use_container_width=True)
     
-    with col3:
-        st.metric("AI Model", "Clinical AI")
-    
-    with col4:
-        if model_performance:
-            st.metric("Model Accuracy", f"{model_performance.get('accuracy', 0.92):.1%}")
-
-    # Explanations
-    st.header("💬 Detailed Analysis")
-    
-    tab1, tab2 = st.tabs(["🇬🇧 English Analysis", "🇮🇳 Tamil Analysis"])
-    
-    with tab1:
-        eng_explanation = explanation_engine.generate_explanation(
-            st.session_state.user_inputs, result, 'en'
-        )
+    # Handle chat interaction
+    if send_button and user_question:
+        # Add user question to chat history
+        st.session_state.chat_history.append({"role": "user", "content": user_question})
         
-        st.markdown("### Risk Assessment")
-        st.markdown(eng_explanation['main_message'])
+        # Get bot response
+        bot_response = chatbot.get_response(user_question, st.session_state.user_inputs)
         
-        if eng_explanation['detailed_explanations']:
-            st.markdown("### 🔍 Key Findings")
-            for detail in eng_explanation['detailed_explanations']:
-                st.markdown(f'<div class="parameter-box">{detail}</div>', unsafe_allow_html=True)
-        else:
-            st.info("🎉 All tested parameters are within normal ranges.")
+        # Add bot response to chat history
+        st.session_state.chat_history.append({"role": "assistant", "content": bot_response})
         
-        st.markdown("### 💡 Preventive Recommendations")
-        for i, tip in enumerate(eng_explanation['prevention_tips'], 1):
-            st.markdown(f"{i}. {tip}")
-
-    with tab2:
-        tam_explanation = explanation_engine.generate_explanation(
-            st.session_state.user_inputs, result, 'ta'
-        )
-        
-        st.markdown("### ஆபத்து மதிப்பீடு")
-        st.markdown(tam_explanation['main_message'])
-        
-        if tam_explanation['detailed_explanations']:
-            st.markdown("### 🔍 முக்கிய கண்டறிதல்கள்")
-            for detail in tam_explanation['detailed_explanations']:
-                st.markdown(f'<div class="parameter-box">{detail}</div>', unsafe_allow_html=True)
-        else:
-            st.info("🎉 அனைத்து சோதனை அளவுருக்களும் சாதாரண வரம்புகளுக்குள் உள்ளன.")
-        
-        st.markdown("### 💡 தடுப்பு பரிந்துரைகள்")
-        for i, tip in enumerate(tam_explanation['prevention_tips'], 1):
-            st.markdown(f"{i}. {tip}")
-
-else:
-    # Welcome message
-    st.markdown("""
-    <div class="info-box">
-    <h3>👋 Welcome to the AI-Powered UTI Detection Chatbot!</h3>
-    <p>This clinical AI tool analyzes your urinalysis results to assess UTI risk and provides 
-    comprehensive explanations in both English and Tamil.</p>
+        # Rerun to update the chat display
+        st.rerun()
     
-    <p><strong>📊 How it works:</strong></p>
-    <ol>
-        <li>Enter your lab values in the sidebar</li>
-        <li>Click "Analyze My Report"</li>
-        <li>Get instant AI-powered analysis with risk assessment</li>
-        <li>Review detailed explanations in your preferred language</li>
-        <li>Receive preventive healthcare recommendations</li>
-    </ol>
+    # Suggested questions
+    st.markdown("### 💡 Suggested Questions:")
+    suggested_questions = [
+        "What are the common symptoms of UTI?",
+        "How can I prevent urinary tract infections?",
+        "What does high WBC in urine mean?",
+        "What treatments are available for UTI?",
+        "When should I see a doctor for UTI symptoms?"
+    ]
     
-    <p><strong>🎯 Model Performance:</strong></p>
-    <ul>
-        <li>Accuracy: 92.3%</li>
-        <li>Trained on clinical urinalysis data</li>
-        <li>Real-time risk assessment</li>
-        <li>Bilingual explanations</li>
-    </ul>
-    
-    <p><em>⚕️ Note: This AI tool provides assisted analysis and should not replace professional medical diagnosis.</em></p>
-    </div>
-    """, unsafe_allow_html=True)
+    cols = st.columns(2)
+    for i, question in enumerate(suggested_questions):
+        with cols[i % 2]:
+            if st.button(question, use_container_width=True):
+                # Add the suggested question to chat
+                st.session_state.chat_history.append({"role": "user", "content": question})
+                bot_response = chatbot.get_response(question, st.session_state.user_inputs)
+                st.session_state.chat_history.append({"role": "assistant", "content": bot_response})
+                st.rerun()
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
 <p><strong>🩺 AI-Powered UTI Detection Chatbot</strong> | 
-Clinical AI Model | Accuracy: 92.3% | Bilingual Support | 
+Clinical AI Model | Accuracy: 92.3% | Bilingual Support | RAG Chatbot | 
 <em>For educational and assisted analysis purposes</em></p>
 <p>Always consult healthcare professionals for medical diagnosis and treatment</p>
 </div>
