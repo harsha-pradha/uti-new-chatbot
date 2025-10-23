@@ -92,6 +92,13 @@ st.markdown("""
         border: 1px solid #ddd;
         margin-right: 50px;
     }
+    .diet-box {
+        background-color: #e8f5e8;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #4CAF50;
+        margin: 10px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -213,6 +220,188 @@ def prepare_user_inputs(user_inputs, expected_features):
     # Ensure we return features in the exact order expected by the scaler
     return [feature_dict[feature] for feature in all_expected_features]
 
+# Dynamic Diet Recommendation Engine
+class DietRecommendationEngine:
+    def __init__(self):
+        self.diet_recommendations = {
+            'high_risk': {
+                'en': {
+                    'title': "🍎 Dietary Recommendations for UTI Management",
+                    'hydration': "**💧 Hydration Focus:** Drink 10-12 glasses of water daily to flush bacteria from urinary tract",
+                    'foods_to_include': [
+                        "**Cranberry Juice**: Unsweetened cranberry juice (prevents bacteria adhesion)",
+                        "**Vitamin C Rich Foods**: Citrus fruits, bell peppers, broccoli (acidifies urine)",
+                        "**Probiotic Foods**: Yogurt, kefir, fermented foods (supports gut health)",
+                        "**Anti-inflammatory Foods**: Turmeric, ginger, fatty fish (reduces inflammation)",
+                        "**Garlic**: Natural antimicrobial properties"
+                    ],
+                    'foods_to_avoid': [
+                        "**Sugar & Sweeteners**: Feed harmful bacteria",
+                        "**Caffeine**: Can irritate bladder",
+                        "**Alcohol**: Dehydrates and irritates urinary tract",
+                        "**Spicy Foods**: May worsen bladder irritation",
+                        "**Processed Foods**: High in preservatives and additives"
+                    ]
+                },
+                'ta': {
+                    'title': "🍎 யூடிஐ நிர்வாகத்திற்கான உணவு பரிந்துரைகள்",
+                    'hydration': "**💧 நீரேற்றம்:** சிறுநீர் பாதையில் இருந்து பாக்டீரியாவை வெளியேற்ற தினமும் 10-12 கிளாஸ் தண்ணீர் குடிக்கவும்",
+                    'foods_to_include': [
+                        "**கிரான்பெரி சாறு**: சர்க்கரை இல்லாத கிரான்பெரி சாறு (பாக்டீரியா ஒட்டுதலை தடுக்கிறது)",
+                        "**வைட்டமின் சி நிறைந்த உணவுகள்**: சிட்ரஸ் பழங்கள், பெல் பெப்பர், ப்ரோக்கோலி (சிறுநீரை அமிலமாக்குகிறது)",
+                        "**ப்ரோபயாடிக் உணவுகள்**: தயிர், கெஃபிர், புளித்த உணவுகள் (குடல் ஆரோக்கியத்தை ஆதரிக்கிறது)",
+                        "**எதிர்-வீக்க உணவுகள்**: மஞ்சள், இஞ்சி, கொழுப்பு மீன் (வீக்கத்தை குறைக்கிறது)",
+                        "**பூண்டு**: இயற்கையான நுண்ணுயிர் எதிர்ப்பு பண்புகள்"
+                    ],
+                    'foods_to_avoid': [
+                        "**சர்க்கரை & இனிப்பிகள்**: தீங்கு விளைவிக்கும் பாக்டீரியாக்களை வளர்க்கும்",
+                        "**காஃபின்**: சிறுநீர்ப்பையை எரிச்சலூட்டும்",
+                        "**மது**: நீரிழப்பு மற்றும் சிறுநீர் பாதையை எரிச்சலூட்டும்",
+                        "**கார உணவுகள்**: சிறுநீர்ப்பை எரிச்சலை மோசமாக்கும்",
+                        "**செயலாக்கப்பட்ட உணவுகள்**: பாதுகாப்பான்கள் மற்றும் சேர்க்கைகள் அதிகம்"
+                    ]
+                }
+            },
+            'medium_risk': {
+                'en': {
+                    'title': "🍎 Dietary Support for Urinary Health",
+                    'hydration': "**💧 Hydration Focus:** Drink 8-10 glasses of water daily to maintain urinary flow",
+                    'foods_to_include': [
+                        "**Cranberry Products**: Juice or supplements (bacterial anti-adhesion)",
+                        "**Blueberries & Berries**: Rich in antioxidants",
+                        "**Probiotic Yogurt**: Supports healthy gut flora",
+                        "**Citrus Fruits**: Lemon, oranges in moderation",
+                        "**Pumpkin Seeds**: Zinc for immune support",
+                        "**Leafy Greens**: Spinach, kale for overall health"
+                    ],
+                    'foods_to_avoid': [
+                        "**Excess Sugar**: Limits bacterial growth",
+                        "**Carbonated Drinks**: Can irritate bladder",
+                        "**Artificial Sweeteners**: May cause irritation",
+                        "**Highly Processed Foods**: Choose whole foods instead"
+                    ]
+                },
+                'ta': {
+                    'title': "🍎 சிறுநீர் ஆரோக்கியத்திற்கான உணவு ஆதரவு",
+                    'hydration': "**💧 நீரேற்றம்:** சிறுநீர் ஓட்டத்தை பராமரிக்க தினமும் 8-10 கிளாஸ் தண்ணீர் குடிக்கவும்",
+                    'foods_to_include': [
+                        "**கிரான்பெரி பொருட்கள்**: சாறு அல்லது கூடுதல் உணவுகள் (பாக்டீரியா எதிர்ப்பு)",
+                        "**புளுபெர்ரி & பெர்ரி**: ஆன்டிஆக்ஸிடன்ட்கள் நிறைந்தவை",
+                        "**ப்ரோபயாடிக் தயிர்**: ஆரோக்கியமான குடல் தாவரங்களை ஆதரிக்கிறது",
+                        "**சிட்ரஸ் பழங்கள்**: எலுமிச்சை, ஆரஞ்சு மிதமாக",
+                        "**பூசணி விதைகள்**: நோயெதிர்ப்பு ஆதரவுக்கான துத்தநாகம்",
+                        "**இலை காய்கறிகள்**: முழு ஆரோக்கியத்திற்காக கீரை, கேல்"
+                    ],
+                    'foods_to_avoid': [
+                        "**அதிக சர்க்கரை**: பாக்டீரியா வளர்ச்சியை கட்டுப்படுத்துகிறது",
+                        "**கார்பனேடெட் பானங்கள்**: சிறுநீர்ப்பையை எரிச்சலூட்டும்",
+                        "**செயற்கை இனிப்பிகள்**: எரிச்சலை ஏற்படுத்தக்கூடும்",
+                        "**அதிக செயலாக்கப்பட்ட உணவுகள்**: முழு உணவுகளை தேர்வு செய்யவும்"
+                    ]
+                }
+            },
+            'low_risk': {
+                'en': {
+                    'title': "🍎 Preventive Diet for Urinary Health",
+                    'hydration': "**💧 Hydration Focus:** Maintain 6-8 glasses of water daily for optimal urinary function",
+                    'foods_to_include': [
+                        "**Water-rich Fruits**: Watermelon, cucumber, oranges",
+                        "**Whole Grains**: Brown rice, oats, quinoa",
+                        "**Lean Proteins**: Chicken, fish, legumes",
+                        "**Healthy Fats**: Avocado, nuts, olive oil",
+                        "**Colorful Vegetables**: Variety of colors for antioxidants",
+                        "**Herbal Teas**: Chamomile, peppermint (caffeine-free)"
+                    ],
+                    'foods_to_avoid': [
+                        "**Limit Processed Foods**: Choose fresh alternatives",
+                        "**Moderate Caffeine**: 1-2 cups daily maximum",
+                        "**Reduce Salt**: For overall kidney health",
+                        "**Minimize Alcohol**: Occasional consumption only"
+                    ]
+                },
+                'ta': {
+                    'title': "🍎 சிறுநீர் ஆரோக்கியத்திற்கான தடுப்பு உணவு",
+                    'hydration': "**💧 நீரேற்றம்:** உகந்த சிறுநீர் செயல்பாட்டிற்காக தினமும் 6-8 கிளாஸ் தண்ணீர் குடிக்கவும்",
+                    'foods_to_include': [
+                        "**நீர் நிறைந்த பழங்கள்**: தர்பூசணி, வெள்ளரி, ஆரஞ்சு",
+                        "**முழு தானியங்கள்**: கருப்பு அரிசி, ஓட்ஸ், கினோவா",
+                        "**குறைந்த கொழுப்பு புரதங்கள்**: கோழி, மீன், பருப்பு வகைகள்",
+                        "**ஆரோக்கியமான கொழுப்புகள்**: அவகேடோ, கொட்டைகள், ஆலிவ் எண்ணெய்",
+                        "**வண்ண காய்கறிகள்**: ஆன்டிஆக்ஸிடன்ட்களுக்கான பல்வேறு வண்ணங்கள்",
+                        "**மூலிகை தேநீர்**: சாமோமைல், புதினா (காஃபின் இல்லாதது)"
+                    ],
+                    'foods_to_avoid': [
+                        "**செயலாக்கப்பட்ட உணவுகளை கட்டுப்படுத்தவும்**: புதிய மாற்றுகளை தேர்வு செய்யவும்",
+                        "**மிதமான காஃபின்**: தினசரி அதிகபட்சம் 1-2 கப்",
+                        "**உப்பு குறைக்கவும்**: மொத்த சிறுநீரக ஆரோக்கியத்திற்காக",
+                        "**மதுவை குறைக்கவும்**: அவசர நுகர்வு மட்டுமே"
+                    ]
+                }
+            }
+        }
+    
+    def get_recommendations(self, user_inputs, risk_level, language='en'):
+        """Get personalized diet recommendations based on lab values and risk level"""
+        base_recommendations = self.diet_recommendations[risk_level.lower()][language]
+        
+        # Add personalized recommendations based on specific lab values
+        personalized_tips = self._get_personalized_tips(user_inputs, language)
+        
+        return {
+            'title': base_recommendations['title'],
+            'hydration': base_recommendations['hydration'],
+            'foods_to_include': base_recommendations['foods_to_include'],
+            'foods_to_avoid': base_recommendations['foods_to_avoid'],
+            'personalized_tips': personalized_tips
+        }
+    
+    def _get_personalized_tips(self, user_inputs, language):
+        """Generate personalized tips based on specific lab abnormalities"""
+        tips = []
+        
+        # High WBC - focus on anti-inflammatory foods
+        if user_inputs.get('WBC', 0) > 10:
+            if language == 'en':
+                tips.append("**Anti-inflammatory Focus**: Include turmeric, ginger, and omega-3 rich foods to combat inflammation")
+            else:
+                tips.append("**எதிர்-வீக்க கவனம்**: வீக்கத்தை எதிர்கொள்ள மஞ்சள், இஞ்சி மற்றும் ஓமேகா-3 நிறைந்த உணவுகளை சேர்க்கவும்")
+        
+        # High protein - kidney support
+        if user_inputs.get('Protein', 0) >= 2:
+            if language == 'en':
+                tips.append("**Kidney Support**: Monitor protein intake and include kidney-friendly foods like cabbage, cauliflower")
+            else:
+                tips.append("**சிறுநீரக ஆதரவு**: புரத உட்கொள்ளலை கண்காணித்து முட்டைக்கோஸ், காலிஃபிளார் போன்ற சிறுநீரக நட்பு உணவுகளை சேர்க்கவும்")
+        
+        # Abnormal pH - acid/base balance
+        ph = user_inputs.get('pH', 7.0)
+        if ph > 7.5:  # Alkaline urine
+            if language == 'en':
+                tips.append("**Urine Acidification**: Include vitamin C rich foods and cranberry to help acidify urine")
+            else:
+                tips.append("**சிறுநீர் அமிலமயமாக்கல்**: சிறுநீரை அமிலமாக்க உதவ வைட்டமின் சி நிறைந்த உணவுகள் மற்றும் கிரான்பெரியை சேர்க்கவும்")
+        elif ph < 5.5:  # Acidic urine
+            if language == 'en':
+                tips.append("**Balancing pH**: Include more alkaline-forming foods like vegetables and fruits")
+            else:
+                tips.append("**pH சமநிலை**: காய்கறிகள் மற்றும் பழங்கள் போன்ற அல்கலைன் உருவாக்கும் உணவுகளை அதிகம் சேர்க்கவும்")
+        
+        # High specific gravity - hydration focus
+        if user_inputs.get('Specific Gravity', 1.015) > 1.025:
+            if language == 'en':
+                tips.append("**Hydration Priority**: Increase water intake as concentrated urine suggests dehydration")
+            else:
+                tips.append("**நீரேற்ற முன்னுரிமை**: செறிவூட்டப்பட்ட சிறுநீர் நீரிழப்பைக் குறிக்கிறது என்பதால் நீர் உட்கொள்ளலை அதிகரிக்கவும்")
+        
+        # Bacteria present - antimicrobial support
+        if user_inputs.get('Bacteria', 0) >= 2:
+            if language == 'en':
+                tips.append("**Antimicrobial Support**: Include garlic, oregano, and probiotic foods to fight bacteria")
+            else:
+                tips.append("**நுண்ணுயிர் எதிர்ப்பு ஆதரவு**: பாக்டீரியாவை எதிர்கொள்ள பூண்டு, ஓரிகானோ மற்றும் ப்ரோபயாடிக் உணவுகளை சேர்க்கவும்")
+        
+        return tips
+
 # Bilingual Explanation Engine
 class BilingualExplanationEngine:
     def __init__(self):
@@ -333,16 +522,16 @@ class BilingualExplanationEngine:
                 return levels[int(value)]
         return str(value)
 
-# RAG Chatbot Class
+# RAG Chatbot Class (without medication information)
 class UTIChatbot:
     def __init__(self):
         self.knowledge_base = {
             "uti": {
                 "symptoms": "Common UTI symptoms include: burning sensation during urination, frequent urination, cloudy or strong-smelling urine, pelvic pain, and feeling tired.",
                 "causes": "UTIs are usually caused by bacteria entering the urinary tract. Risk factors include sexual activity, certain birth control methods, menopause, urinary tract abnormalities, and suppressed immune system.",
-                "treatment": "UTIs are typically treated with antibiotics. Common medications include trimethoprim/sulfamethoxazole, nitrofurantoin, and fosfomycin. Always complete the full course of antibiotics as prescribed.",
                 "prevention": "To prevent UTIs: drink plenty of water, urinate frequently, wipe front to back, urinate after sexual intercourse, avoid irritating feminine products, and consider cranberry products.",
-                "diagnosis": "UTIs are diagnosed through urinalysis to check for white blood cells, red blood cells, and bacteria. Urine culture may be done to identify specific bacteria and determine appropriate antibiotics."
+                "diagnosis": "UTIs are diagnosed through urinalysis to check for white blood cells, red blood cells, and bacteria. Urine culture may be done to identify specific bacteria.",
+                "when_to_see_doctor": "Consult a healthcare provider if you experience: fever, chills, back pain, nausea, vomiting, or if symptoms don't improve after 2-3 days."
             },
             "urinalysis": {
                 "wbc": "White Blood Cells (WBC) in urine may indicate infection or inflammation. Normal range is 0-5 WBCs per high power field.",
@@ -353,11 +542,17 @@ class UTIChatbot:
                 "bacteria": "Bacteria in urine (bacteriuria) suggests possible urinary tract infection. The amount helps determine severity.",
                 "specific_gravity": "Specific gravity measures urine concentration. Normal range is 1.005 to 1.030. High values may indicate dehydration."
             },
+            "diet": {
+                "hydration": "Proper hydration helps flush bacteria from the urinary tract. Aim for 6-8 glasses of water daily.",
+                "cranberry": "Cranberry products may help prevent UTIs by preventing bacteria from adhering to urinary tract walls.",
+                "vitamin_c": "Vitamin C rich foods can help acidify urine, creating an unfavorable environment for bacteria.",
+                "probiotics": "Probiotic foods like yogurt support healthy gut and urinary tract flora.",
+                "foods_to_avoid": "Limit sugar, caffeine, alcohol, and spicy foods which can irritate the bladder."
+            },
             "general": {
                 "hydration": "Proper hydration helps flush bacteria from the urinary tract. Aim for 6-8 glasses of water daily.",
-                "antibiotics": "Antibiotics for UTIs should be taken as prescribed. Never stop early even if symptoms improve.",
-                "recurrent_uti": "Recurrent UTIs (2 or more in 6 months) may require longer antibiotic courses or preventive treatment.",
-                "when_to_see_doctor": "See a doctor if you experience: fever, chills, back pain, nausea, vomiting, or if symptoms don't improve after 2-3 days of treatment."
+                "recurrent_uti": "Recurrent UTIs (2 or more in 6 months) may require lifestyle changes and preventive strategies.",
+                "when_to_see_doctor": "See a healthcare provider if you experience: fever, chills, back pain, nausea, vomiting, or if symptoms don't improve after 2-3 days."
             }
         }
     
@@ -375,11 +570,21 @@ class UTIChatbot:
         elif any(word in user_question_lower for word in ['cause', 'why', 'reason', 'risk']):
             response = self.knowledge_base["uti"]["causes"]
         
-        elif any(word in user_question_lower for word in ['treat', 'medicine', 'antibiotic', 'cure']):
-            response = self.knowledge_base["uti"]["treatment"]
-        
         elif any(word in user_question_lower for word in ['prevent', 'avoid', 'stop']):
             response = self.knowledge_base["uti"]["prevention"]
+        
+        # Diet and nutrition questions
+        elif any(word in user_question_lower for word in ['diet', 'food', 'eat', 'nutrition']):
+            response = self.knowledge_base["diet"]["hydration"] + " " + self.knowledge_base["diet"]["cranberry"]
+        
+        elif 'cranberry' in user_question_lower:
+            response = self.knowledge_base["diet"]["cranberry"]
+        
+        elif any(word in user_question_lower for word in ['water', 'hydrat', 'drink']):
+            response = self.knowledge_base["diet"]["hydration"]
+        
+        elif 'probiotic' in user_question_lower:
+            response = self.knowledge_base["diet"]["probiotics"]
         
         # Urinalysis parameter questions
         elif 'wbc' in user_question_lower or 'white blood' in user_question_lower:
@@ -404,9 +609,6 @@ class UTIChatbot:
             response = self.knowledge_base["urinalysis"]["specific_gravity"]
         
         # General questions
-        elif any(word in user_question_lower for word in ['water', 'hydrat', 'drink']):
-            response = self.knowledge_base["general"]["hydration"]
-        
         elif 'recurrent' in user_question_lower or 'frequent' in user_question_lower:
             response = self.knowledge_base["general"]["recurrent_uti"]
         
@@ -415,7 +617,7 @@ class UTIChatbot:
         
         # Default response for unknown questions
         if not response:
-            response = "I'm specialized in urinary tract infections and urinalysis results. Could you please rephrase your question or ask about UTI symptoms, causes, treatment, prevention, or specific urinalysis parameters like WBC, RBC, pH, etc.?"
+            response = "I'm specialized in urinary tract infections and urinalysis results. Could you please rephrase your question or ask about UTI symptoms, causes, prevention, diet recommendations, or specific urinalysis parameters?"
         
         # Add personalized context if available
         if user_context and st.session_state.prediction_result:
@@ -425,13 +627,14 @@ class UTIChatbot:
             if risk_level == "HIGH":
                 response += f"\n\nBased on your urinalysis results showing {probability:.1%} probability of UTI, it's important to consult with a healthcare provider promptly."
             elif risk_level == "MEDIUM":
-                response += f"\n\nYour results indicate a {probability:.1%} probability of UTI. Consider monitoring symptoms and consulting a doctor if they persist."
+                response += f"\n\nYour results indicate a {probability:.1%} probability of UTI. Consider monitoring symptoms and consulting a healthcare provider if they persist."
         
         return response
 
 # Initialize components
 model, scaler, feature_names, model_performance = load_model_artifacts()
 explanation_engine = BilingualExplanationEngine()
+diet_engine = DietRecommendationEngine()
 chatbot = UTIChatbot()
 
 # Initialize session state for chat
@@ -444,7 +647,7 @@ if 'prediction_result' not in st.session_state:
 if 'user_inputs' not in st.session_state:
     st.session_state.user_inputs = {}
 
-# Sidebar for input (without test cases)
+# Sidebar for input
 st.sidebar.header("🔬 Enter Lab Values")
 
 # Input fields in two columns
@@ -556,10 +759,10 @@ with tab1:
             
             Your urinalysis results indicate a high probability of urinary tract infection. Key concerning factors include:
             - Elevated levels of infection markers
-            - Abnormal urine characteristics
+            - Abnormal urine characteristics  
             - Clinical indicators suggesting active infection
             
-            **Recommendation:** Please consult with a healthcare provider promptly for proper diagnosis and treatment.
+            **Recommendation:** Please consult with a healthcare provider promptly for proper diagnosis and guidance.
             """
         elif result['risk_level'] == 'MEDIUM':
             summary_text = f"""
@@ -579,6 +782,53 @@ with tab1:
             """
         
         st.markdown(f'<div class="info-box">{summary_text}</div>', unsafe_allow_html=True)
+
+        # Dynamic Diet Recommendations
+        st.header("🍎 Personalized Diet & Nutrition")
+        
+        diet_tab1, diet_tab2 = st.tabs(["🇬🇧 English", "🇮🇳 Tamil"])
+        
+        with diet_tab1:
+            eng_diet = diet_engine.get_recommendations(
+                st.session_state.user_inputs, result['risk_level'], 'en'
+            )
+            
+            st.markdown(f"### {eng_diet['title']}")
+            st.markdown(eng_diet['hydration'])
+            
+            st.markdown("#### ✅ Foods to Include:")
+            for food in eng_diet['foods_to_include']:
+                st.markdown(f"- {food}")
+            
+            st.markdown("#### ❌ Foods to Avoid/Limit:")
+            for food in eng_diet['foods_to_avoid']:
+                st.markdown(f"- {food}")
+            
+            if eng_diet['personalized_tips']:
+                st.markdown("#### 💡 Personalized Recommendations:")
+                for tip in eng_diet['personalized_tips']:
+                    st.markdown(f"- {tip}")
+
+        with diet_tab2:
+            tam_diet = diet_engine.get_recommendations(
+                st.session_state.user_inputs, result['risk_level'], 'ta'
+            )
+            
+            st.markdown(f"### {tam_diet['title']}")
+            st.markdown(tam_diet['hydration'])
+            
+            st.markdown("#### ✅ சேர்க்க வேண்டிய உணவுகள்:")
+            for food in tam_diet['foods_to_include']:
+                st.markdown(f"- {food}")
+            
+            st.markdown("#### ❌ தவிர்க்க/குறைக்க வேண்டிய உணவுகள்:")
+            for food in tam_diet['foods_to_avoid']:
+                st.markdown(f"- {food}")
+            
+            if tam_diet['personalized_tips']:
+                st.markdown("#### 💡 தனிப்பட்ட பரிந்துரைகள்:")
+                for tip in tam_diet['personalized_tips']:
+                    st.markdown(f"- {tip}")
 
         # Explanations
         st.header("💬 Detailed Analysis")
@@ -637,15 +887,16 @@ with tab1:
             <li>Click "Analyze My Report"</li>
             <li>Get instant AI-powered analysis with risk assessment</li>
             <li>Review detailed explanations in your preferred language</li>
-            <li>Receive preventive healthcare recommendations</li>
+            <li>Receive personalized diet recommendations</li>
+            <li>Get preventive healthcare recommendations</li>
         </ol>
         
-        <p><strong>🎯 Model Performance:</strong></p>
+        <p><strong>🎯 Features:</strong></p>
         <ul>
-            <li>Accuracy: 92.3%</li>
-            <li>Trained on clinical urinalysis data</li>
-            <li>Real-time risk assessment</li>
-            <li>Bilingual explanations</li>
+            <li>AI Risk Assessment with 92.3% accuracy</li>
+            <li>Personalized diet recommendations based on your lab values</li>
+            <li>Bilingual explanations (English & Tamil)</li>
+            <li>Interactive chatbot for UTI-related questions</li>
         </ul>
         
         <p><em>⚕️ Note: This AI tool provides assisted analysis and should not replace professional medical diagnosis.</em></p>
@@ -654,7 +905,7 @@ with tab1:
 
 with tab2:
     st.header("💬 Chat with UTI Expert")
-    st.markdown("Ask me anything about urinary tract infections, urinalysis results, symptoms, treatment, or prevention!")
+    st.markdown("Ask me anything about urinary tract infections, urinalysis results, symptoms, prevention, or diet recommendations!")
     
     # Display chat history
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
@@ -692,7 +943,7 @@ with tab2:
         "What are the common symptoms of UTI?",
         "How can I prevent urinary tract infections?",
         "What does high WBC in urine mean?",
-        "What treatments are available for UTI?",
+        "What foods help prevent UTIs?",
         "When should I see a doctor for UTI symptoms?"
     ]
     
@@ -711,7 +962,7 @@ st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
 <p><strong>🩺 AI-Powered UTI Detection Chatbot</strong> | 
-Clinical AI Model | Accuracy: 92.3% | Bilingual Support | RAG Chatbot | 
+Clinical AI Model | Personalized Diet Recommendations | Bilingual Support | RAG Chatbot | 
 <em>For educational and assisted analysis purposes</em></p>
 <p>Always consult healthcare professionals for medical diagnosis and treatment</p>
 </div>
