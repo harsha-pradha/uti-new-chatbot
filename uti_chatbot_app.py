@@ -773,6 +773,8 @@ with tab1:
             if model_performance:
                 st.metric("Model Accuracy", f"{model_performance.get('accuracy', 0.92):.1%}")
 
+# In the UTI Risk Analysis tab, replace the summary section with this:
+
         # Summary Section
         st.header("📋 Summary")
         
@@ -780,32 +782,32 @@ with tab1:
         risk_percentage = int(result['probability'] * 100)
         
         if result['risk_level'] == 'HIGH':
-            summary_text = f"""
-            **High Risk of UTI Detected ({risk_percentage}%)**
-            
-            Your urinalysis results indicate a high probability of urinary tract infection. Key concerning factors include:
-            - Elevated levels of infection markers
-            - Abnormal urine characteristics  
-            - Clinical indicators suggesting active infection
-            
-            **Recommendation:** Please consult with a healthcare provider promptly for proper diagnosis and guidance.
-            """
+            summary_text = """
+**High Risk of UTI Detected ({}%)**
+
+Your urinalysis results indicate a high probability of urinary tract infection. Key concerning factors include:
+- Elevated levels of infection markers
+- Abnormal urine characteristics  
+- Clinical indicators suggesting active infection
+
+**Recommendation:** Please consult with a healthcare provider promptly for proper diagnosis and guidance.
+""".format(risk_percentage)
         elif result['risk_level'] == 'MEDIUM':
-            summary_text = f"""
-            **Medium Risk of UTI ({risk_percentage}%)**
-            
-            Your results show some indicators of possible urinary tract infection, but the evidence is not conclusive.
-            
-            **Recommendation:** Monitor your symptoms closely and consider consulting a healthcare provider if symptoms persist or worsen.
-            """
+            summary_text = """
+**Medium Risk of UTI ({}%)**
+
+Your results show some indicators of possible urinary tract infection, but the evidence is not conclusive.
+
+**Recommendation:** Monitor your symptoms closely and consider consulting a healthcare provider if symptoms persist or worsen.
+""".format(risk_percentage)
         else:
-            summary_text = f"""
-            **Low Risk of UTI ({risk_percentage}%)**
-            
-            Your urinalysis results are largely within normal ranges, indicating low probability of urinary tract infection.
-            
-            **Recommendation:** Continue practicing good urinary health habits and monitor for any new symptoms.
-            """
+            summary_text = """
+**Low Risk of UTI ({}%)**
+
+Your urinalysis results are largely within normal ranges, indicating low probability of urinary tract infection.
+
+**Recommendation:** Continue practicing good urinary health habits and monitor for any new symptoms.
+""".format(risk_percentage)
         
         st.markdown(f'<div class="info-box">{summary_text}</div>', unsafe_allow_html=True)
 
