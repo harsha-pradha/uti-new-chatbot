@@ -224,7 +224,7 @@ def prepare_user_inputs(user_inputs, expected_features):
 class DietRecommendationEngine:
     def __init__(self):
         self.diet_recommendations = {
-            'high_risk': {
+            'HIGH': {  # Changed from 'high_risk' to 'HIGH'
                 'en': {
                     'title': "🍎 Dietary Recommendations for UTI Management",
                     'hydration': "**💧 Hydration Focus:** Drink 10-12 glasses of water daily to flush bacteria from urinary tract",
@@ -262,7 +262,7 @@ class DietRecommendationEngine:
                     ]
                 }
             },
-            'medium_risk': {
+            'MEDIUM': {  # Changed from 'medium_risk' to 'MEDIUM'
                 'en': {
                     'title': "🍎 Dietary Support for Urinary Health",
                     'hydration': "**💧 Hydration Focus:** Drink 8-10 glasses of water daily to maintain urinary flow",
@@ -300,7 +300,7 @@ class DietRecommendationEngine:
                     ]
                 }
             },
-            'low_risk': {
+            'LOW': {  # Changed from 'low_risk' to 'LOW'
                 'en': {
                     'title': "🍎 Preventive Diet for Urinary Health",
                     'hydration': "**💧 Hydration Focus:** Maintain 6-8 glasses of water daily for optimal urinary function",
@@ -342,18 +342,44 @@ class DietRecommendationEngine:
     
     def get_recommendations(self, user_inputs, risk_level, language='en'):
         """Get personalized diet recommendations based on lab values and risk level"""
-        base_recommendations = self.diet_recommendations[risk_level.lower()][language]
-        
-        # Add personalized recommendations based on specific lab values
-        personalized_tips = self._get_personalized_tips(user_inputs, language)
-        
-        return {
-            'title': base_recommendations['title'],
-            'hydration': base_recommendations['hydration'],
-            'foods_to_include': base_recommendations['foods_to_include'],
-            'foods_to_avoid': base_recommendations['foods_to_avoid'],
-            'personalized_tips': personalized_tips
-        }
+        try:
+            # Use uppercase risk level to match dictionary keys
+            risk_key = risk_level.upper()
+            base_recommendations = self.diet_recommendations[risk_key][language]
+            
+            # Add personalized recommendations based on specific lab values
+            personalized_tips = self._get_personalized_tips(user_inputs, language)
+            
+            return {
+                'title': base_recommendations['title'],
+                'hydration': base_recommendations['hydration'],
+                'foods_to_include': base_recommendations['foods_to_include'],
+                'foods_to_avoid': base_recommendations['foods_to_avoid'],
+                'personalized_tips': personalized_tips
+            }
+        except KeyError as e:
+            st.error(f"Error getting diet recommendations: {e}")
+            # Return default recommendations if there's an error
+            return self._get_default_recommendations(language)
+    
+    def _get_default_recommendations(self, language='en'):
+        """Get default diet recommendations in case of error"""
+        if language == 'en':
+            return {
+                'title': "🍎 General Urinary Health Diet",
+                'hydration': "**💧 Hydration:** Drink adequate water daily",
+                'foods_to_include': ["Focus on whole foods, fruits and vegetables"],
+                'foods_to_avoid': ["Limit processed foods and sugars"],
+                'personalized_tips': []
+            }
+        else:
+            return {
+                'title': "🍎 பொது சிறுநீர் ஆரோக்கிய உணவு",
+                'hydration': "**💧 நீரேற்றம்:** தினமும் போதுமான தண்ணீர் குடிக்கவும்",
+                'foods_to_include': ["முழு உணவுகள், பழங்கள் மற்றும் காய்கறிகளில் கவனம் செலுத்தவும்"],
+                'foods_to_avoid': ["செயலாக்கப்பட்ட உணவுகள் மற்றும் சர்க்கரைகளை கட்டுப்படுத்தவும்"],
+                'personalized_tips': []
+            }
     
     def _get_personalized_tips(self, user_inputs, language):
         """Generate personalized tips based on specific lab abnormalities"""
@@ -789,46 +815,54 @@ with tab1:
         diet_tab1, diet_tab2 = st.tabs(["🇬🇧 English", "🇮🇳 Tamil"])
         
         with diet_tab1:
-            eng_diet = diet_engine.get_recommendations(
-                st.session_state.user_inputs, result['risk_level'], 'en'
-            )
-            
-            st.markdown(f"### {eng_diet['title']}")
-            st.markdown(eng_diet['hydration'])
-            
-            st.markdown("#### ✅ Foods to Include:")
-            for food in eng_diet['foods_to_include']:
-                st.markdown(f"- {food}")
-            
-            st.markdown("#### ❌ Foods to Avoid/Limit:")
-            for food in eng_diet['foods_to_avoid']:
-                st.markdown(f"- {food}")
-            
-            if eng_diet['personalized_tips']:
-                st.markdown("#### 💡 Personalized Recommendations:")
-                for tip in eng_diet['personalized_tips']:
-                    st.markdown(f"- {tip}")
+            try:
+                eng_diet = diet_engine.get_recommendations(
+                    st.session_state.user_inputs, result['risk_level'], 'en'
+                )
+                
+                st.markdown(f"### {eng_diet['title']}")
+                st.markdown(eng_diet['hydration'])
+                
+                st.markdown("#### ✅ Foods to Include:")
+                for food in eng_diet['foods_to_include']:
+                    st.markdown(f"- {food}")
+                
+                st.markdown("#### ❌ Foods to Avoid/Limit:")
+                for food in eng_diet['foods_to_avoid']:
+                    st.markdown(f"- {food}")
+                
+                if eng_diet['personalized_tips']:
+                    st.markdown("#### 💡 Personalized Recommendations:")
+                    for tip in eng_diet['personalized_tips']:
+                        st.markdown(f"- {tip}")
+                        
+            except Exception as e:
+                st.error(f"Error loading diet recommendations: {e}")
 
         with diet_tab2:
-            tam_diet = diet_engine.get_recommendations(
-                st.session_state.user_inputs, result['risk_level'], 'ta'
-            )
-            
-            st.markdown(f"### {tam_diet['title']}")
-            st.markdown(tam_diet['hydration'])
-            
-            st.markdown("#### ✅ சேர்க்க வேண்டிய உணவுகள்:")
-            for food in tam_diet['foods_to_include']:
-                st.markdown(f"- {food}")
-            
-            st.markdown("#### ❌ தவிர்க்க/குறைக்க வேண்டிய உணவுகள்:")
-            for food in tam_diet['foods_to_avoid']:
-                st.markdown(f"- {food}")
-            
-            if tam_diet['personalized_tips']:
-                st.markdown("#### 💡 தனிப்பட்ட பரிந்துரைகள்:")
-                for tip in tam_diet['personalized_tips']:
-                    st.markdown(f"- {tip}")
+            try:
+                tam_diet = diet_engine.get_recommendations(
+                    st.session_state.user_inputs, result['risk_level'], 'ta'
+                )
+                
+                st.markdown(f"### {tam_diet['title']}")
+                st.markdown(tam_diet['hydration'])
+                
+                st.markdown("#### ✅ சேர்க்க வேண்டிய உணவுகள்:")
+                for food in tam_diet['foods_to_include']:
+                    st.markdown(f"- {food}")
+                
+                st.markdown("#### ❌ தவிர்க்க/குறைக்க வேண்டிய உணவுகள்:")
+                for food in tam_diet['foods_to_avoid']:
+                    st.markdown(f"- {food}")
+                
+                if tam_diet['personalized_tips']:
+                    st.markdown("#### 💡 தனிப்பட்ட பரிந்துரைகள்:")
+                    for tip in tam_diet['personalized_tips']:
+                        st.markdown(f"- {tip}")
+                        
+            except Exception as e:
+                st.error(f"Error loading diet recommendations: {e}")
 
         # Explanations
         st.header("💬 Detailed Analysis")
